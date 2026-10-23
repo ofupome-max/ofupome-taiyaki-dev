@@ -1,9 +1,13 @@
-/* おふポメのたい焼き大冒険（仮） | M01 Phaser起動設定 */
+/* おふポメのたい焼き大冒険 | M02 走行テスト起動設定 */
 (function () {
   'use strict';
 
-  if (typeof Phaser === 'undefined' || typeof BootScene === 'undefined') {
-    console.error('M01: Phaser または BootScene.js を読み込めませんでした。');
+  if (
+    typeof Phaser === 'undefined' ||
+    typeof BootScene === 'undefined' ||
+    typeof RunnerScene === 'undefined'
+  ) {
+    console.error('M02: Phaser またはシーンファイルを読み込めませんでした。');
     return;
   }
 
@@ -19,16 +23,25 @@
       width: 960,
       height: 540
     },
+    physics: {
+      default: 'arcade',
+      arcade: {
+        gravity: { y: 0 },
+        debug: false
+      }
+    },
     render: {
       pixelArt: false,
       antialias: true
     },
-    scene: [BootScene]
+    // M02は仮図形で走行・二段ジャンプを検証する。
+    // BootSceneは保持し、起動シーンをRunnerSceneに切り替える。
+    scene: [RunnerScene, BootScene]
   };
 
   try {
     window.ofupomeGame = new Phaser.Game(config);
   } catch (error) {
-    console.error('M01: ゲームの起動に失敗しました。', error);
+    console.error('M02: ゲームの起動に失敗しました。', error);
   }
 })();
