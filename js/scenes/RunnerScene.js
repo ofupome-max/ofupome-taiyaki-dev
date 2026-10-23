@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M03-4 ゲームオーバー・リスタートテスト */
+/* おふポメのたい焼き大冒険 | M04-1 ステージ距離設定テスト */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -7,9 +7,12 @@ class RunnerScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor('#e6f1e8');
+    // M04-1: ステージ1-1の目標距離を定義。ゴール判定はM04-2で追加。
+    this.stageLengthPx = 18000;
+    this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M03-4｜ゲームオーバー・リスタート テスト', {
+    this.add.text(480, 42, 'M04-1｜ステージ距離設定 テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -149,6 +152,6 @@ class RunnerScene extends Phaser.Scene {
     }
     if (!this.isGameOver) this.player.setVelocityX(300);
     const meters = Math.floor(Math.max(0, this.player.x - 180) / 100);
-    this.status.setText(`走行距離 ${meters}m   |   ジャンプ ${this.jumpCount}/2`);
+    this.status.setText(`走行距離 ${meters}m / 目標 ${this.stageGoalMeters}m   |   ジャンプ ${this.jumpCount}/2`);
   }
 }
