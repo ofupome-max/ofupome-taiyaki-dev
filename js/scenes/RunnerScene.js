@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M05-3 多重スクロール */
+/* おふポメのたい焼き大冒険 | M05-4 地面の見た目を改善 */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -13,7 +13,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M05-3｜多重スクロールテスト', {
+    this.add.text(480, 42, 'M05-4｜地面の見た目テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -37,12 +37,16 @@ class RunnerScene extends Phaser.Scene {
       { start: 5300, end: 5650 }
     ];
 
+    // M05-4: 描画だけを差し替え、物理用の矩形は従来どおり残す。
+    const groundArtwork = this.add.graphics().setDepth(-2);
     const addGround = (left, right) => {
       const width = right - left;
       if (width <= 0) return;
       const ground = this.add.rectangle(
         left + width / 2, 502, width, 76, 0x8dbf87
       );
+      ground.setAlpha(0); // 物理ボディの位置・寸法は変えず、見た目のみ別描画
+      this.drawStorybookGround(groundArtwork, left, right);
       this.physics.add.existing(ground, true);
       this.groundSegments.add(ground);
     };
@@ -106,6 +110,40 @@ class RunnerScene extends Phaser.Scene {
     this.status = this.add.text(24, 135, '', {
       fontFamily: 'sans-serif', fontSize: '20px', color: '#355b42'
     }).setScrollFactor(0).setDepth(10);
+  }
+
+  // M05-4: 地面の外観のみ。穴はaddGroundが呼ばれないため自動的に空白になる。
+  // 既存の地面の物理位置(y=502, height=76)、穴の区間は一切変更しない。
+  drawStorybookGround(g, left, right) {
+    const width = right - left;
+    if (width <= 0) return;
+    const top = 464;
+    // 柔らかい草の表面と温かい土。地面は下端540pxまで。
+    g.fillStyle(0xb79570, 1);
+    g.fillRect(left, top, width, 76);
+    g.fillStyle(0xc8a784, 1);
+    g.fillRect(left, top + 19, width, 57);
+    g.fillStyle(0x8dbb82, 1);
+    g.fillRect(left, top, width, 13);
+    g.fillStyle(0xb4d29d, 1);
+    g.fillRect(left, top, width, 5);
+    // 穴の両端をわかりやすくする縦の土色の境界線。
+    g.fillStyle(0x9e7c60, 1);
+    g.fillRect(left, top + 13, Math.min(4, width), 63);
+    g.fillRect(Math.max(left, right - 4), top + 13, Math.min(4, width), 63);
+    // 区間をまたいで一定の間隔で描くので、2000px分割の継ぎ目が目立たない。
+    for (let x = Math.ceil(left / 145) * 145; x < right; x += 145) {
+      const available = Math.min(23, right - x);
+      if (available < 5) continue;
+      const row = Math.floor(x / 145) % 3;
+      const y = 493 + row * 13;
+      g.fillStyle(row === 1 ? 0xb58e6c : 0xb99978, 0.72);
+      g.fillRoundedRect(x, y, available, 4, 2);
+      if (x + 44 < right) {
+        g.fillStyle(0xe0c3a0, 0.7);
+        g.fillEllipse(x + 42, y + 13, 8, 5);
+      }
+    }
   }
 
   // M05-3: 背景を画面固定のGraphicsで毎フレーム描画。
