@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M04-1 ステージ距離設定テスト */
+/* おふポメのたい焼き大冒険 | M04-2 ゴール到達判定テスト */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -7,12 +7,12 @@ class RunnerScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor('#e6f1e8');
-    // M04-1: ステージ1-1の目標距離を定義。ゴール判定はM04-2で追加。
+    // M04-2: ステージ1-1の目標距離とゴール到達判定。
     this.stageLengthPx = 18000;
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M04-1｜ステージ距離設定 テスト', {
+    this.add.text(480, 42, 'M04-2｜180mゴール到達判定 テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -92,6 +92,7 @@ class RunnerScene extends Phaser.Scene {
     this.hasFallen = false;
     this.hasHitObstacle = false;
     this.isGameOver = false;
+    this.hasReachedGoal = false;
     this.input.on('pointerdown', () => this.tryJump());
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-SPACE', () => this.tryJump());
@@ -133,6 +134,7 @@ class RunnerScene extends Phaser.Scene {
       this.scene.restart();
       return;
     }
+    if (this.hasReachedGoal) return;
     const grounded = this.player.body.blocked.down || this.player.body.touching.down;
     if (grounded) this.jumpCount = 0;
     if (this.hasFallen || this.hasHitObstacle || this.jumpCount >= 2) return;
@@ -146,11 +148,22 @@ class RunnerScene extends Phaser.Scene {
       this.jumpCount = 0;
     }
     // M03-4: 落下・障害物衝突を共通ゲームオーバー画面に統一。
-    if (!this.hasFallen && !this.hasHitObstacle && this.player.y > 610) {
+    if (!this.isGameOver && !this.hasReachedGoal && !this.hasFallen && !this.hasHitObstacle && this.player.y > 610) {
       this.hasFallen = true;
       this.showGameOver('穴に落ちた！');
     }
-    if (!this.isGameOver) this.player.setVelocityX(300);
+    // 180m到達時は走行を止める。クリア画面・再挑戦はM04-3/4で追加。
+    if (!this.isGameOver && !this.hasReachedGoal && this.player.x - 180 >= this.stageLengthPx) {
+      this.hasReachedGoal = true;
+      this.player.setVelocity(0, 0);
+      this.player.setGravityY(0);
+      this.player.body.enable = false;
+      this.add.text(480, 250, '180m ゴール到達！', {
+        fontFamily: 'sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#ffffff',
+        backgroundColor: '#557d5b', padding: { x: 20, y: 14 }
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(30);
+    }
+    if (!this.isGameOver && !this.hasReachedGoal) this.player.setVelocityX(300);
     const meters = Math.floor(Math.max(0, this.player.x - 180) / 100);
     this.status.setText(`走行距離 ${meters}m / 目標 ${this.stageGoalMeters}m   |   ジャンプ ${this.jumpCount}/2`);
   }
