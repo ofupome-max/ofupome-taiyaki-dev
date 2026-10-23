@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M05-4a 軽量化テスト */
+/* おふポメのたい焼き大冒険 | M05-5 ゴール付近の演出 */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -13,7 +13,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M05-4a｜軽量化テスト', {
+    this.add.text(480, 42, 'M05-5｜ゴール演出テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -76,6 +76,7 @@ class RunnerScene extends Phaser.Scene {
     // M05-2: ワールド座標の非物理装飾。背景にだけ描き、衝突判定は付けない。
     // 穴・障害物の周囲は余白を確保し、回避ポイントの視認性を優先する。
     this.createForestDecorations(gaps, [1300, 3900]);
+    this.createGoalDecorations();
 
     // 穴の位置を示す小さな目印。キャラクターと同じワールド座標に配置。
     for (const gap of gaps) {
@@ -113,6 +114,7 @@ class RunnerScene extends Phaser.Scene {
     this.hasHitObstacle = false;
     this.isGameOver = false;
     this.hasReachedGoal = false;
+    this.goalApproachShown = false;
     this.input.on('pointerdown', () => this.tryJump());
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-SPACE', () => this.tryJump());
@@ -275,6 +277,41 @@ class RunnerScene extends Phaser.Scene {
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
   }
 
+  // M05-5: ゴール周辺だけに静的な軽量装飾を配置する。物理判定なし。
+  createGoalDecorations() {
+    const x = 18180; // プレイヤー初期位置180pxを含むゴール到達座標
+    const g = this.add.graphics().setDepth(3);
+    // 木製のゴールアーチ。走路の上に置き、接触判定を追加しない。
+    g.lineStyle(13, 0x9b7958, 1);
+    g.lineBetween(x - 74, 463, x - 74, 315);
+    g.lineBetween(x + 74, 463, x + 74, 315);
+    g.lineBetween(x - 74, 315, x + 74, 315);
+    g.fillStyle(0xb5d49e, 1);
+    g.fillRoundedRect(x - 64, 284, 128, 51, 16);
+    g.lineStyle(3, 0x7a9c70, 1);
+    g.strokeRoundedRect(x - 64, 284, 128, 51, 16);
+    this.add.text(x, 308, 'GOAL!', {
+      fontFamily: 'sans-serif', fontSize: '27px', fontStyle: 'bold', color: '#416448'
+    }).setOrigin(0.5).setDepth(4);
+    // 近づいたときだけ視界に入る目印。
+    this.add.text(x - 920, 385, 'あと少し！', {
+      fontFamily: 'sans-serif', fontSize: '26px', fontStyle: 'bold', color: '#547d55'
+    }).setOrigin(0.5).setDepth(2);
+  }
+
+  showGoalApproach() {
+    if (this.goalApproachShown) return;
+    this.goalApproachShown = true;
+    this.goalApproachText = this.add.text(480, 192, 'ゴールまであと30m！', {
+      fontFamily: 'sans-serif', fontSize: '27px', fontStyle: 'bold', color: '#4d7955',
+      backgroundColor: '#fff7df', padding: { x: 17, y: 8 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(12);
+    // 1回だけの短い表示。毎フレーム描き直さない。
+    this.time.delayedCall(2500, () => {
+      if (this.goalApproachText && this.goalApproachText.active) this.goalApproachText.destroy();
+    });
+  }
+
   // M04-4: ゴール後の専用クリア画面と再挑戦操作。
   showStageClear() {
     this.add.rectangle(480, 270, 960, 540, 0x20392b, 0.68)
@@ -284,6 +321,9 @@ class RunnerScene extends Phaser.Scene {
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
     this.add.text(480, 258, '森 1-1  ｜  180m ゴール！', {
       fontFamily: 'sans-serif', fontSize: '29px', color: '#ffffff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
+    this.add.text(480, 118, '✦  ✧  ✦', {
+      fontFamily: 'sans-serif', fontSize: '35px', color: '#f6e2a3'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
     this.add.text(480, 321, 'おめでとう！', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff'
@@ -323,6 +363,9 @@ class RunnerScene extends Phaser.Scene {
     if (!this.isGameOver && !this.hasReachedGoal && !this.hasFallen && !this.hasHitObstacle && this.player.y > 610) {
       this.hasFallen = true;
       this.showGameOver('穴に落ちた！');
+    }
+    if (!this.isGameOver && !this.hasReachedGoal && !this.goalApproachShown && this.player.x - 180 >= 15000) {
+      this.showGoalApproach();
     }
     // 180m到達時は走行を止める。クリア画面・再挑戦はM04-3/4で追加。
     if (!this.isGameOver && !this.hasReachedGoal && this.player.x - 180 >= this.stageLengthPx) {
