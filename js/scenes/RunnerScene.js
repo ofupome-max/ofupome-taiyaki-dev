@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M05-5 ゴール付近の演出 */
+/* おふポメのたい焼き大冒険 | M05-6 細かな視覚演出 */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -13,7 +13,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M05-5｜ゴール演出テスト', {
+    this.add.text(480, 42, 'M05-6｜視覚演出テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -115,6 +115,16 @@ class RunnerScene extends Phaser.Scene {
     this.isGameOver = false;
     this.hasReachedGoal = false;
     this.goalApproachShown = false;
+    // M05-6: 固定数の小さな土ぼこりを再利用。物理演算や毎フレームの生成は行わない。
+    this.dustPool = [];
+    for (let i = 0; i < 12; i++) {
+      const dust = this.add.ellipse(-100, -100, 9, 5, 0xe6d6b4, 0)
+        .setDepth(5).setVisible(false);
+      this.dustPool.push({ sprite: dust, vx: 0, vy: 0, life: 0, maxLife: 1 });
+    }
+    this.dustCursor = 0;
+    this.wasGrounded = false;
+    this.runDustElapsed = 0;
     this.input.on('pointerdown', () => this.tryJump());
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-SPACE', () => this.tryJump());
@@ -334,6 +344,40 @@ class RunnerScene extends Phaser.Scene {
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
   }
 
+  // M05-6: ジャンプ・着地・走行中の軽量な足元演出。
+  emitDust(count, kind) {
+    if (!this.player || !this.player.body || !this.player.body.enable) return;
+    const x = this.player.x;
+    const y = Math.min(458, this.player.y + 25);
+    for (let i = 0; i < count; i++) {
+      const particle = this.dustPool[this.dustCursor];
+      this.dustCursor = (this.dustCursor + 1) % this.dustPool.length;
+      const sign = i % 2 ? 1 : -1;
+      particle.life = kind === 'run' ? 220 : 340;
+      particle.maxLife = particle.life;
+      particle.vx = (kind === 'run' ? -45 : sign * (38 + i * 13));
+      particle.vy = kind === 'land' ? -36 - i * 9 : kind === 'jump' ? 22 : -18;
+      particle.sprite.setPosition(x + sign * (11 + i * 5), y)
+        .setAlpha(0.62).setScale(1).setVisible(true);
+    }
+  }
+
+  updateDust(delta) {
+    for (const particle of this.dustPool) {
+      if (particle.life <= 0) continue;
+      const dt = Math.min(delta, 50);
+      particle.life = Math.max(0, particle.life - dt);
+      if (particle.life === 0) {
+        particle.sprite.setVisible(false);
+        continue;
+      }
+      particle.sprite.x += particle.vx * dt / 1000;
+      particle.sprite.y += particle.vy * dt / 1000;
+      const ratio = particle.life / particle.maxLife;
+      particle.sprite.setAlpha(ratio * 0.62).setScale(0.65 + ratio * 0.35);
+    }
+  }
+
   tryJump() {
     if (this.isGameOver) {
       this.scene.restart();
@@ -346,19 +390,34 @@ class RunnerScene extends Phaser.Scene {
     const grounded = this.player.body.blocked.down || this.player.body.touching.down;
     if (grounded) this.jumpCount = 0;
     if (this.hasFallen || this.hasHitObstacle || this.jumpCount >= 2) return;
+    this.emitDust(this.jumpCount === 0 ? 3 : 2, 'jump');
     this.player.setVelocityY(this.jumpCount === 0 ? -650 : -600);
     this.jumpCount += 1;
   }
 
-  update() {
+  update(time, delta) {
     // 描画の再生成なし。テクスチャのオフセットだけ更新する。
     const scrollX = this.cameras.main.scrollX;
     this.hillLayer.tilePositionX = scrollX * 0.12;
     this.treeLayer.tilePositionX = scrollX * 0.32;
     if (!this.player || !this.player.body) return;
-    if (this.player.body.enable && (this.player.body.blocked.down || this.player.body.touching.down)) {
-      this.jumpCount = 0;
+    this.updateDust(delta);
+    const grounded = this.player.body.enable &&
+      (this.player.body.blocked.down || this.player.body.touching.down);
+    if (grounded && !this.wasGrounded && this.player.body.velocity.y >= 0) {
+      this.emitDust(4, 'land');
     }
+    if (grounded) {
+      this.jumpCount = 0;
+      this.runDustElapsed += Math.min(delta, 50);
+      if (this.runDustElapsed >= 330 && !this.isGameOver && !this.hasReachedGoal) {
+        this.runDustElapsed = 0;
+        this.emitDust(1, 'run');
+      }
+    } else {
+      this.runDustElapsed = 0;
+    }
+    this.wasGrounded = grounded;
     // M03-4: 落下・障害物衝突を共通ゲームオーバー画面に統一。
     if (!this.isGameOver && !this.hasReachedGoal && !this.hasFallen && !this.hasHitObstacle && this.player.y > 610) {
       this.hasFallen = true;
