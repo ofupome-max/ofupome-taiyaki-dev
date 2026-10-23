@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M04-3 ステージクリア画面テスト */
+/* おふポメのたい焼き大冒険 | M04-4 クリア後の再挑戦テスト */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -12,7 +12,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M04-3｜ステージクリア画面 テスト', {
+    this.add.text(480, 42, 'M04-4｜クリア後の再挑戦 テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -129,7 +129,7 @@ class RunnerScene extends Phaser.Scene {
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
   }
 
-  // M04-3: ゴール後の専用クリア画面。再挑戦操作はM04-4で実装する。
+  // M04-4: ゴール後の専用クリア画面と再挑戦操作。
   showStageClear() {
     this.add.rectangle(480, 270, 960, 540, 0x20392b, 0.68)
       .setScrollFactor(0).setDepth(30);
@@ -139,9 +139,12 @@ class RunnerScene extends Phaser.Scene {
     this.add.text(480, 258, '森 1-1  ｜  180m ゴール！', {
       fontFamily: 'sans-serif', fontSize: '29px', color: '#ffffff'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-    this.add.text(480, 349, 'おめでとう！', {
-      fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff',
-      backgroundColor: '#557d5b', padding: { x: 26, y: 13 }
+    this.add.text(480, 321, 'おめでとう！', {
+      fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
+    this.add.text(480, 402, 'もう一度プレイ  ▶', {
+      fontFamily: 'sans-serif', fontSize: '29px', fontStyle: 'bold', color: '#ffffff',
+      backgroundColor: '#557d5b', padding: { x: 28, y: 14 }
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
   }
 
@@ -150,7 +153,10 @@ class RunnerScene extends Phaser.Scene {
       this.scene.restart();
       return;
     }
-    if (this.hasReachedGoal) return;
+    if (this.hasReachedGoal) {
+      this.scene.restart();
+      return;
+    }
     const grounded = this.player.body.blocked.down || this.player.body.touching.down;
     if (grounded) this.jumpCount = 0;
     if (this.hasFallen || this.hasHitObstacle || this.jumpCount >= 2) return;
