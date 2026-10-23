@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M04-4 クリア後の再挑戦テスト */
+/* おふポメのたい焼き大冒険 | M05-1 やさしい絵本風・背景基本デザイン */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -6,13 +6,14 @@ class RunnerScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor('#e6f1e8');
+    this.cameras.main.setBackgroundColor('#f8f1dc');
+    this.createStorybookBackground();
     // M04-2: ステージ1-1の目標距離とゴール到達判定。
     this.stageLengthPx = 18000;
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M04-4｜クリア後の再挑戦 テスト', {
+    this.add.text(480, 42, 'M05-1｜絵本風の森・背景テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -101,6 +102,37 @@ class RunnerScene extends Phaser.Scene {
     this.status = this.add.text(24, 135, '', {
       fontFamily: 'sans-serif', fontSize: '20px', color: '#355b42'
     }).setScrollFactor(0).setDepth(10);
+  }
+
+  // M05-1: 空・遠くの丘・森の色を追加。すべて画面固定の非物理背景。
+  // 装飾用の図形は奥に描画し、地面・障害物・プレイヤーの判定には触れない。
+  createStorybookBackground() {
+    const bg = this.add.graphics().setScrollFactor(0).setDepth(-100);
+    // 空：クリーム色の絵本風ベースと柔らかな水平帯。
+    bg.fillStyle(0xf8f1dc, 1);
+    bg.fillRect(0, 0, 960, 540);
+    bg.fillStyle(0xf1f1d8, 1);
+    bg.fillRect(0, 190, 960, 350);
+    // 遠くの丘：落ち着いた緑を重ね、主役より控えめにする。
+    bg.fillStyle(0xd9e8c8, 1);
+    bg.fillEllipse(120, 465, 690, 275);
+    bg.fillEllipse(700, 470, 790, 280);
+    bg.fillStyle(0xc4dcba, 1);
+    bg.fillEllipse(380, 515, 780, 205);
+    bg.fillEllipse(940, 510, 680, 215);
+    // 遠景の木：簡素な丸い樹冠と幹。固定背景なのでちらつかない。
+    const trees = [
+      [75, 370, 0.9], [210, 395, 0.72], [330, 368, 0.84],
+      [540, 388, 0.76], [700, 366, 0.92], [850, 394, 0.74]
+    ];
+    for (const [x, y, scale] of trees) {
+      bg.fillStyle(0xb5c9a5, 1);
+      bg.fillRoundedRect(x - 7 * scale, y + 5 * scale, 14 * scale, 100 * scale, 5 * scale);
+      bg.fillStyle(0xaed2a8, 1);
+      bg.fillEllipse(x, y, 106 * scale, 98 * scale);
+      bg.fillStyle(0xc2ddbb, 1);
+      bg.fillEllipse(x - 19 * scale, y - 13 * scale, 61 * scale, 58 * scale);
+    }
   }
 
   onObstacleHit() {
