@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M04-2 ゴール到達判定テスト */
+/* おふポメのたい焼き大冒険 | M04-3 ステージクリア画面テスト */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -12,7 +12,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M04-2｜180mゴール到達判定 テスト', {
+    this.add.text(480, 42, 'M04-3｜ステージクリア画面 テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -104,7 +104,7 @@ class RunnerScene extends Phaser.Scene {
   }
 
   onObstacleHit() {
-    if (this.isGameOver) return;
+    if (this.isGameOver || this.hasReachedGoal) return;
     this.hasHitObstacle = true;
     this.showGameOver('障害物にぶつかった！');
   }
@@ -126,6 +126,22 @@ class RunnerScene extends Phaser.Scene {
     this.add.text(480, 350, '画面をタップして、もう一度！', {
       fontFamily: 'sans-serif', fontSize: '27px', color: '#ffffff',
       backgroundColor: '#557d5b', padding: { x: 22, y: 13 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
+  }
+
+  // M04-3: ゴール後の専用クリア画面。再挑戦操作はM04-4で実装する。
+  showStageClear() {
+    this.add.rectangle(480, 270, 960, 540, 0x20392b, 0.68)
+      .setScrollFactor(0).setDepth(30);
+    this.add.text(480, 166, 'ステージクリア！', {
+      fontFamily: 'sans-serif', fontSize: '52px', fontStyle: 'bold', color: '#fff8df'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
+    this.add.text(480, 258, '森 1-1  ｜  180m ゴール！', {
+      fontFamily: 'sans-serif', fontSize: '29px', color: '#ffffff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
+    this.add.text(480, 349, 'おめでとう！', {
+      fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff',
+      backgroundColor: '#557d5b', padding: { x: 26, y: 13 }
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
   }
 
@@ -158,10 +174,7 @@ class RunnerScene extends Phaser.Scene {
       this.player.setVelocity(0, 0);
       this.player.setGravityY(0);
       this.player.body.enable = false;
-      this.add.text(480, 250, '180m ゴール到達！', {
-        fontFamily: 'sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#ffffff',
-        backgroundColor: '#557d5b', padding: { x: 20, y: 14 }
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(30);
+      this.showStageClear();
     }
     if (!this.isGameOver && !this.hasReachedGoal) this.player.setVelocityX(300);
     const meters = Math.floor(Math.max(0, this.player.x - 180) / 100);
