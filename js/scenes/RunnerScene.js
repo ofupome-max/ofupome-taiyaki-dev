@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M05-4 地面の見た目を改善 */
+/* おふポメのたい焼き大冒険 | M05-4a 軽量化テスト */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -13,7 +13,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M05-4｜地面の見た目テスト', {
+    this.add.text(480, 42, 'M05-4a｜軽量化テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -38,7 +38,10 @@ class RunnerScene extends Phaser.Scene {
     ];
 
     // M05-4: 描画だけを差し替え、物理用の矩形は従来どおり残す。
-    const groundArtwork = this.add.graphics().setDepth(-2);
+    // 画面外の200,000px分を1つの巨大Graphicsに溜め込まない。
+    // 2,000pxごとの独立した描画オブジェクトはカメラの範囲外でカリングされる。
+    let groundArtwork = null;
+    let artworkSegment = -1;
     const addGround = (left, right) => {
       const width = right - left;
       if (width <= 0) return;
@@ -46,7 +49,15 @@ class RunnerScene extends Phaser.Scene {
         left + width / 2, 502, width, 76, 0x8dbf87
       );
       ground.setAlpha(0); // 物理ボディの位置・寸法は変えず、見た目のみ別描画
-      this.drawStorybookGround(groundArtwork, left, right);
+      // ゴール後は描画不要。物理判定は従来の全区間で維持する。
+        if (left < this.stageLengthPx + 2000) {
+          const index = Math.floor(left / segmentWidth);
+          if (index !== artworkSegment) {
+            groundArtwork = this.add.graphics().setDepth(-2);
+            artworkSegment = index;
+          }
+          this.drawStorybookGround(groundArtwork, left, right);
+        }
       this.physics.add.existing(ground, true);
       this.groundSegments.add(ground);
     };
@@ -146,54 +157,52 @@ class RunnerScene extends Phaser.Scene {
     }
   }
 
-  // M05-3: 背景を画面固定のGraphicsで毎フレーム描画。
-  // カメラ移動量の一部だけを反映して、丘(0.12倍)と遠景の木(0.32倍)に視差をつける。
-  // 描画物は物理判定なし。ワールド側の木・茂み・草は通常スクロール(1倍)。
+  // M05-4a: 遠景を静止テクスチャに一度だけ描き、TileSpriteの位置だけ動かす。
+  // 毎フレームのGraphics.clear() / 楕円の再生成を廃止してiPhoneの負荷を抑える。
   createStorybookBackground() {
-    this.storybookBackground = this.add.graphics().setScrollFactor(0).setDepth(-100);
-    this.drawStorybookBackground(0);
-  }
+    const sky = this.add.graphics().setScrollFactor(0).setDepth(-100);
+    sky.fillStyle(0xf8f1dc, 1);
+    sky.fillRect(0, 0, 960, 540);
+    sky.fillStyle(0xf1f1d8, 1);
+    sky.fillRect(0, 190, 960, 350);
 
-  drawStorybookBackground(scrollX) {
-    const bg = this.storybookBackground;
-    if (!bg) return;
-    bg.clear();
-    bg.fillStyle(0xf8f1dc, 1);
-    bg.fillRect(0, 0, 960, 540);
-    bg.fillStyle(0xf1f1d8, 1);
-    bg.fillRect(0, 190, 960, 350);
-
-    // 周期を持たせて、180mの長いステージでも途切れないようにする。
-    // 遠景の丘は最も遅く動く。
-    const hillOffset = (scrollX * 0.12) % 1100;
-    for (let i = -1; i <= 2; i++) {
-      const x = i * 1100 - hillOffset;
-      bg.fillStyle(0xd9e8c8, 1);
-      bg.fillEllipse(x + 120, 465, 690, 275);
-      bg.fillEllipse(x + 700, 470, 790, 280);
-      bg.fillStyle(0xc4dcba, 1);
-      bg.fillEllipse(x + 380, 515, 780, 205);
-      bg.fillEllipse(x + 940, 510, 680, 215);
+    // 遠景の丘：周期1100pxのテクスチャを一度だけ生成。
+    if (this.textures.exists('m05-4a-hills')) this.textures.remove('m05-4a-hills');
+    const hills = this.make.graphics({ x: 0, y: 0 });
+    const hillShapes = [
+      [120, 465, 690, 275, 0xd9e8c8], [700, 470, 790, 280, 0xd9e8c8],
+      [380, 515, 780, 205, 0xc4dcba], [940, 510, 680, 215, 0xc4dcba]
+    ];
+    for (const [x, y, w, h, color] of hillShapes) {
+      hills.fillStyle(color, 1);
+      for (const offset of [-1100, 0, 1100]) {
+        hills.fillEllipse(x + offset, y, w, h);
+      }
     }
+    hills.generateTexture('m05-4a-hills', 1100, 540);
+    hills.destroy();
+    this.hillLayer = this.add.tileSprite(0, 0, 960, 540, 'm05-4a-hills')
+      .setOrigin(0, 0).setScrollFactor(0).setDepth(-99);
 
-    // 遠景の木は丘より速く、地面より遅く動く。
-    const treeOffset = (scrollX * 0.32) % 960;
-    const trees = [
+    // 遠景の木：周期960px。表示内容をテクスチャ化して再利用。
+    if (this.textures.exists('m05-4a-trees')) this.textures.remove('m05-4a-trees');
+    const trees = this.make.graphics({ x: 0, y: 0 });
+    const treeShapes = [
       [75, 370, 0.9], [210, 395, 0.72], [330, 368, 0.84],
       [540, 388, 0.76], [700, 366, 0.92], [850, 394, 0.74]
     ];
-    for (let repeat = -1; repeat <= 1; repeat++) {
-      for (const [baseX, y, scale] of trees) {
-        const x = baseX + repeat * 960 - treeOffset;
-        if (x < -80 || x > 1040) continue;
-        bg.fillStyle(0xb5c9a5, 1);
-        bg.fillRoundedRect(x - 7 * scale, y + 5 * scale, 14 * scale, 100 * scale, 5 * scale);
-        bg.fillStyle(0xaed2a8, 1);
-        bg.fillEllipse(x, y, 106 * scale, 98 * scale);
-        bg.fillStyle(0xc2ddbb, 1);
-        bg.fillEllipse(x - 19 * scale, y - 13 * scale, 61 * scale, 58 * scale);
-      }
+    for (const [x, y, scale] of treeShapes) {
+      trees.fillStyle(0xb5c9a5, 1);
+      trees.fillRoundedRect(x - 7 * scale, y + 5 * scale, 14 * scale, 100 * scale, 5 * scale);
+      trees.fillStyle(0xaed2a8, 1);
+      trees.fillEllipse(x, y, 106 * scale, 98 * scale);
+      trees.fillStyle(0xc2ddbb, 1);
+      trees.fillEllipse(x - 19 * scale, y - 13 * scale, 61 * scale, 58 * scale);
     }
+    trees.generateTexture('m05-4a-trees', 960, 540);
+    trees.destroy();
+    this.treeLayer = this.add.tileSprite(0, 0, 960, 540, 'm05-4a-trees')
+      .setOrigin(0, 0).setScrollFactor(0).setDepth(-98);
   }
 
   // M05-2: ステージの木・低木・草。画面固定ではなく世界に配置する。
@@ -302,7 +311,10 @@ class RunnerScene extends Phaser.Scene {
   }
 
   update() {
-    this.drawStorybookBackground(this.cameras.main.scrollX);
+    // 描画の再生成なし。テクスチャのオフセットだけ更新する。
+    const scrollX = this.cameras.main.scrollX;
+    this.hillLayer.tilePositionX = scrollX * 0.12;
+    this.treeLayer.tilePositionX = scrollX * 0.32;
     if (!this.player || !this.player.body) return;
     if (this.player.body.enable && (this.player.body.blocked.down || this.player.body.touching.down)) {
       this.jumpCount = 0;
