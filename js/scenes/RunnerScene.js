@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M02-6 長距離走行修正版 */
+/* おふポメのたい焼き大冒険 | M03-1 分割地面テスト */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -9,7 +9,7 @@ class RunnerScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#e6f1e8');
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M02｜自動走行・二段ジャンプ テスト', {
+    this.add.text(480, 42, 'M03-1｜分割地面・連続走行テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -23,8 +23,18 @@ class RunnerScene extends Phaser.Scene {
     graphics.generateTexture('m02-placeholder', 78, 56);
     graphics.destroy();
 
-    this.ground = this.add.rectangle(100000, 502, 200000, 76, 0x8dbf87);
-    this.physics.add.existing(this.ground, true);
+    // M03-1: 地面を区間ごとに独立した静的ボディとして生成。
+    // この段階では穴を設けず、M02と同じように連続走行できる。
+    this.groundSegments = this.physics.add.staticGroup();
+    const segmentWidth = 2000;
+    const stageWidth = 200000;
+    for (let left = 0; left < stageWidth; left += segmentWidth) {
+      const ground = this.add.rectangle(
+        left + segmentWidth / 2, 502, segmentWidth, 76, 0x8dbf87
+      );
+      this.physics.add.existing(ground, true);
+      this.groundSegments.add(ground);
+    }
 
     this.player = this.physics.add.sprite(180, 420, 'm02-placeholder');
     this.player.setCollideWorldBounds(false);
@@ -32,7 +42,7 @@ class RunnerScene extends Phaser.Scene {
     this.player.setVelocityX(300);
     this.player.setGravityY(1800);
     this.player.body.setMaxVelocity(300, 1200);
-    this.physics.add.collider(this.player, this.ground);
+    this.physics.add.collider(this.player, this.groundSegments);
     this.cameras.main.startFollow(this.player, false, 1, 0, -180, 0);
     this.cameras.main.setBounds(0, 0, 200000, 540);
 
