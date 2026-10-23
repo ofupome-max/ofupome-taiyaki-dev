@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M05-2 森の木々・草・装飾 */
+/* おふポメのたい焼き大冒険 | M05-3 多重スクロール */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -13,7 +13,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M05-2｜森の木々・草・装飾テスト', {
+    this.add.text(480, 42, 'M05-3｜多重スクロールテスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -108,34 +108,53 @@ class RunnerScene extends Phaser.Scene {
     }).setScrollFactor(0).setDepth(10);
   }
 
-  // M05-1: 空・遠くの丘・森の色を追加。すべて画面固定の非物理背景。
-  // 装飾用の図形は奥に描画し、地面・障害物・プレイヤーの判定には触れない。
+  // M05-3: 背景を画面固定のGraphicsで毎フレーム描画。
+  // カメラ移動量の一部だけを反映して、丘(0.12倍)と遠景の木(0.32倍)に視差をつける。
+  // 描画物は物理判定なし。ワールド側の木・茂み・草は通常スクロール(1倍)。
   createStorybookBackground() {
-    const bg = this.add.graphics().setScrollFactor(0).setDepth(-100);
-    // 空：クリーム色の絵本風ベースと柔らかな水平帯。
+    this.storybookBackground = this.add.graphics().setScrollFactor(0).setDepth(-100);
+    this.drawStorybookBackground(0);
+  }
+
+  drawStorybookBackground(scrollX) {
+    const bg = this.storybookBackground;
+    if (!bg) return;
+    bg.clear();
     bg.fillStyle(0xf8f1dc, 1);
     bg.fillRect(0, 0, 960, 540);
     bg.fillStyle(0xf1f1d8, 1);
     bg.fillRect(0, 190, 960, 350);
-    // 遠くの丘：落ち着いた緑を重ね、主役より控えめにする。
-    bg.fillStyle(0xd9e8c8, 1);
-    bg.fillEllipse(120, 465, 690, 275);
-    bg.fillEllipse(700, 470, 790, 280);
-    bg.fillStyle(0xc4dcba, 1);
-    bg.fillEllipse(380, 515, 780, 205);
-    bg.fillEllipse(940, 510, 680, 215);
-    // 遠景の木：簡素な丸い樹冠と幹。固定背景なのでちらつかない。
+
+    // 周期を持たせて、180mの長いステージでも途切れないようにする。
+    // 遠景の丘は最も遅く動く。
+    const hillOffset = (scrollX * 0.12) % 1100;
+    for (let i = -1; i <= 2; i++) {
+      const x = i * 1100 - hillOffset;
+      bg.fillStyle(0xd9e8c8, 1);
+      bg.fillEllipse(x + 120, 465, 690, 275);
+      bg.fillEllipse(x + 700, 470, 790, 280);
+      bg.fillStyle(0xc4dcba, 1);
+      bg.fillEllipse(x + 380, 515, 780, 205);
+      bg.fillEllipse(x + 940, 510, 680, 215);
+    }
+
+    // 遠景の木は丘より速く、地面より遅く動く。
+    const treeOffset = (scrollX * 0.32) % 960;
     const trees = [
       [75, 370, 0.9], [210, 395, 0.72], [330, 368, 0.84],
       [540, 388, 0.76], [700, 366, 0.92], [850, 394, 0.74]
     ];
-    for (const [x, y, scale] of trees) {
-      bg.fillStyle(0xb5c9a5, 1);
-      bg.fillRoundedRect(x - 7 * scale, y + 5 * scale, 14 * scale, 100 * scale, 5 * scale);
-      bg.fillStyle(0xaed2a8, 1);
-      bg.fillEllipse(x, y, 106 * scale, 98 * scale);
-      bg.fillStyle(0xc2ddbb, 1);
-      bg.fillEllipse(x - 19 * scale, y - 13 * scale, 61 * scale, 58 * scale);
+    for (let repeat = -1; repeat <= 1; repeat++) {
+      for (const [baseX, y, scale] of trees) {
+        const x = baseX + repeat * 960 - treeOffset;
+        if (x < -80 || x > 1040) continue;
+        bg.fillStyle(0xb5c9a5, 1);
+        bg.fillRoundedRect(x - 7 * scale, y + 5 * scale, 14 * scale, 100 * scale, 5 * scale);
+        bg.fillStyle(0xaed2a8, 1);
+        bg.fillEllipse(x, y, 106 * scale, 98 * scale);
+        bg.fillStyle(0xc2ddbb, 1);
+        bg.fillEllipse(x - 19 * scale, y - 13 * scale, 61 * scale, 58 * scale);
+      }
     }
   }
 
@@ -245,6 +264,7 @@ class RunnerScene extends Phaser.Scene {
   }
 
   update() {
+    this.drawStorybookBackground(this.cameras.main.scrollX);
     if (!this.player || !this.player.body) return;
     if (this.player.body.enable && (this.player.body.blocked.down || this.player.body.touching.down)) {
       this.jumpCount = 0;
