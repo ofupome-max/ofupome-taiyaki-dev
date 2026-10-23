@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M02 仮図形による走行テスト */
+/* おふポメのたい焼き大冒険 | M02-6 長距離走行修正版 */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -7,7 +7,7 @@ class RunnerScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor('#e6f1e8');
-    this.physics.world.setBounds(0, 0, 20000, 540);
+    this.physics.world.setBounds(0, 0, 200000, 540);
 
     this.add.text(480, 42, 'M02｜自動走行・二段ジャンプ テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
@@ -23,7 +23,7 @@ class RunnerScene extends Phaser.Scene {
     graphics.generateTexture('m02-placeholder', 78, 56);
     graphics.destroy();
 
-    this.ground = this.add.rectangle(10000, 502, 20000, 76, 0x8dbf87);
+    this.ground = this.add.rectangle(100000, 502, 200000, 76, 0x8dbf87);
     this.physics.add.existing(this.ground, true);
 
     this.player = this.physics.add.sprite(180, 420, 'm02-placeholder');
@@ -34,7 +34,7 @@ class RunnerScene extends Phaser.Scene {
     this.player.body.setMaxVelocity(300, 1200);
     this.physics.add.collider(this.player, this.ground);
     this.cameras.main.startFollow(this.player, false, 1, 0, -180, 0);
-    this.cameras.main.setBounds(0, 0, 20000, 540);
+    this.cameras.main.setBounds(0, 0, 200000, 540);
 
     this.jumpCount = 0;
     this.input.on('pointerdown', () => this.tryJump());
