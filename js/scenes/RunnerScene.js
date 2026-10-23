@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M05-1 やさしい絵本風・背景基本デザイン */
+/* おふポメのたい焼き大冒険 | M05-2 森の木々・草・装飾 */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -13,7 +13,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M05-1｜絵本風の森・背景テスト', {
+    this.add.text(480, 42, 'M05-2｜森の木々・草・装飾テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -57,6 +57,10 @@ class RunnerScene extends Phaser.Scene {
       }
       addGround(cursor, right);
     }
+
+    // M05-2: ワールド座標の非物理装飾。背景にだけ描き、衝突判定は付けない。
+    // 穴・障害物の周囲は余白を確保し、回避ポイントの視認性を優先する。
+    this.createForestDecorations(gaps, [1300, 3900]);
 
     // 穴の位置を示す小さな目印。キャラクターと同じワールド座標に配置。
     for (const gap of gaps) {
@@ -132,6 +136,50 @@ class RunnerScene extends Phaser.Scene {
       bg.fillEllipse(x, y, 106 * scale, 98 * scale);
       bg.fillStyle(0xc2ddbb, 1);
       bg.fillEllipse(x - 19 * scale, y - 13 * scale, 61 * scale, 58 * scale);
+    }
+  }
+
+  // M05-2: ステージの木・低木・草。画面固定ではなく世界に配置する。
+  createForestDecorations(gaps, obstaclePositions) {
+    const decor = this.add.graphics().setDepth(-4);
+    const nearHazard = (x) =>
+      gaps.some(g => x > g.start - 260 && x < g.end + 260) ||
+      obstaclePositions.some(ox => Math.abs(x - ox) < 230);
+    const stageEnd = 18000 + 180;
+
+    // 木々：幹と丸い樹冠。すべて地面の奥に置く。
+    for (let i = 0, x = 520; x < stageEnd; i++, x += 630) {
+      if (nearHazard(x)) continue;
+      const h = 92 + (i % 3) * 14;
+      const baseY = 465;
+      decor.fillStyle(0xa5b79b, 0.94);
+      decor.fillRoundedRect(x - 11, baseY - h + 38, 22, h - 38, 8);
+      decor.fillStyle(i % 2 ? 0xa8cda3 : 0xb8d7ac, 0.98);
+      decor.fillEllipse(x, baseY - h + 23, 112, 105);
+      decor.fillStyle(0xcce4bf, 0.95);
+      decor.fillEllipse(x - 27, baseY - h + 8, 62, 53);
+      decor.fillStyle(0x9fc59c, 0.8);
+      decor.fillEllipse(x + 29, baseY - h + 28, 48, 54);
+    }
+
+    // 茂み：低い位置に限定してジャンプ軌道と標識を見やすくする。
+    for (let i = 0, x = 340; x < stageEnd; i++, x += 410) {
+      if (nearHazard(x)) continue;
+      const y = 464;
+      decor.fillStyle(i % 2 ? 0x9cc48f : 0xb1d19f, 0.95);
+      decor.fillEllipse(x, y, 95, 42);
+      decor.fillEllipse(x - 28, y + 4, 56, 32);
+      decor.fillEllipse(x + 30, y + 5, 58, 30);
+    }
+
+    // 草の房：控えめな装飾。危険箇所と重ねない。
+    decor.lineStyle(3, 0x83ad7b, 0.88);
+    for (let i = 0, x = 260; x < stageEnd; i++, x += 155) {
+      if (nearHazard(x)) continue;
+      const y = 466;
+      decor.lineBetween(x, y, x - 8, y - 13);
+      decor.lineBetween(x, y, x + 1, y - 18);
+      decor.lineBetween(x, y, x + 9, y - 11);
     }
   }
 
