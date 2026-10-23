@@ -1,4 +1,4 @@
-/* おふポメのたい焼き大冒険 | M05-6 細かな視覚演出 */
+/* おふポメのたい焼き大冒険 | M05-6a 土ぼこり表示修正 */
 class RunnerScene extends Phaser.Scene {
   constructor() {
     super({ key: 'RunnerScene' });
@@ -13,7 +13,7 @@ class RunnerScene extends Phaser.Scene {
     this.stageGoalMeters = this.stageLengthPx / 100;
     this.physics.world.setBounds(0, 0, 200000, 540);
 
-    this.add.text(480, 42, 'M05-6｜視覚演出テスト', {
+    this.add.text(480, 42, 'M05-6a｜土ぼこり修正テスト', {
       fontFamily: 'sans-serif', fontSize: '30px', color: '#355b42', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
     this.add.text(480, 88, '画面をタップ：ジャンプ → 空中でもう一度タップ', {
@@ -118,7 +118,7 @@ class RunnerScene extends Phaser.Scene {
     // M05-6: 固定数の小さな土ぼこりを再利用。物理演算や毎フレームの生成は行わない。
     this.dustPool = [];
     for (let i = 0; i < 12; i++) {
-      const dust = this.add.ellipse(-100, -100, 9, 5, 0xe6d6b4, 0)
+      const dust = this.add.ellipse(-100, -100, 15, 10, 0xc9a777, 1)
         .setDepth(5).setVisible(false);
       this.dustPool.push({ sprite: dust, vx: 0, vy: 0, life: 0, maxLife: 1 });
     }
@@ -353,12 +353,12 @@ class RunnerScene extends Phaser.Scene {
       const particle = this.dustPool[this.dustCursor];
       this.dustCursor = (this.dustCursor + 1) % this.dustPool.length;
       const sign = i % 2 ? 1 : -1;
-      particle.life = kind === 'run' ? 220 : 340;
+      particle.life = kind === 'run' ? 370 : 520;
       particle.maxLife = particle.life;
       particle.vx = (kind === 'run' ? -45 : sign * (38 + i * 13));
       particle.vy = kind === 'land' ? -36 - i * 9 : kind === 'jump' ? 22 : -18;
       particle.sprite.setPosition(x + sign * (11 + i * 5), y)
-        .setAlpha(0.62).setScale(1).setVisible(true);
+        .setAlpha(0.85).setScale(1).setVisible(true);
     }
   }
 
@@ -374,7 +374,7 @@ class RunnerScene extends Phaser.Scene {
       particle.sprite.x += particle.vx * dt / 1000;
       particle.sprite.y += particle.vy * dt / 1000;
       const ratio = particle.life / particle.maxLife;
-      particle.sprite.setAlpha(ratio * 0.62).setScale(0.65 + ratio * 0.35);
+      particle.sprite.setAlpha(ratio * 0.85).setScale(0.65 + ratio * 0.35);
     }
   }
 
