@@ -165,6 +165,44 @@ class RunnerScene extends Phaser.Scene {
     this.status = this.add.text(24, 135, '', {
       fontFamily: 'sans-serif', fontSize: '20px', color: '#355b42'
     }).setScrollFactor(0).setDepth(10);
+    this.createM07Collectibles();
+  }
+
+  // M07 STEP 1-8: 40個の固定配置による接触取得テスト。正式版v0.6.0とは別ファイル。
+  createM07Collectibles() {
+    const placements = [{"id":"C01","type":"coin","x":480,"y":420},{"id":"C02","type":"coin","x":760,"y":420},{"id":"C03","type":"coin","x":990,"y":340},{"id":"C04","type":"coin","x":1650,"y":420},{"id":"F01","type":"flour","x":1850,"y":420},{"id":"C05","type":"coin","x":2050,"y":340},{"id":"C06","type":"coin","x":2350,"y":420},{"id":"C07","type":"coin","x":3200,"y":420},{"id":"C08","type":"coin","x":3500,"y":340},{"id":"C09","type":"coin","x":4400,"y":420},{"id":"F02","type":"flour","x":4650,"y":340},{"id":"C10","type":"coin","x":4800,"y":340},{"id":"C11","type":"coin","x":5050,"y":420},{"id":"C12","type":"coin","x":6000,"y":340},{"id":"C13","type":"coin","x":6350,"y":420},{"id":"C14","type":"coin","x":6700,"y":420},{"id":"C15","type":"coin","x":7050,"y":340},{"id":"F03","type":"flour","x":7350,"y":420},{"id":"C16","type":"coin","x":7500,"y":420},{"id":"C17","type":"coin","x":7900,"y":340},{"id":"C18","type":"coin","x":8300,"y":420},{"id":"C19","type":"coin","x":8700,"y":340},{"id":"C20","type":"coin","x":9100,"y":420},{"id":"C21","type":"coin","x":9500,"y":420},{"id":"C22","type":"coin","x":9900,"y":340},{"id":"C23","type":"coin","x":10300,"y":420},{"id":"C24","type":"coin","x":10700,"y":340},{"id":"C25","type":"coin","x":11100,"y":420},{"id":"F04","type":"flour","x":11350,"y":340},{"id":"C26","type":"coin","x":11500,"y":420},{"id":"C27","type":"coin","x":11900,"y":340},{"id":"C28","type":"coin","x":12300,"y":420},{"id":"C29","type":"coin","x":12700,"y":340},{"id":"C30","type":"coin","x":13100,"y":420},{"id":"C31","type":"coin","x":13500,"y":420},{"id":"C32","type":"coin","x":14000,"y":340},{"id":"C33","type":"coin","x":14500,"y":420},{"id":"F05","type":"flour","x":15200,"y":420},{"id":"C34","type":"coin","x":16000,"y":340},{"id":"C35","type":"coin","x":17100,"y":420}];
+    this.m07Coins = 0;
+    this.m07Flour = 0;
+    this.m07CollectedIds = new Set();
+    this.m07Items = this.physics.add.staticGroup();
+    for (const entry of placements) {
+      // 仮の表示。正式アイテム画像の生成・差し替えはしない。
+      const isCoin = entry.type === 'coin';
+      const visual = isCoin
+        ? this.add.ellipse(entry.x, entry.y, 24, 24, 0xf3c554).setStrokeStyle(2, 0xb77c28)
+        : this.add.rectangle(entry.x, entry.y, 24, 24, 0xf9f0d7).setStrokeStyle(2, 0xb89a6b);
+      visual.setDepth(4);
+      this.physics.add.existing(visual, true);
+      visual.body.setSize(24, 24);
+      visual.body.updateFromGameObject();
+      visual.setData('m07Id', entry.id);
+      visual.setData('m07Type', entry.type);
+      this.m07Items.add(visual);
+    }
+    this.physics.add.overlap(this.player, this.m07Items, (player, item) => {
+      if (this.isGameOver || this.hasReachedGoal || !item.active) return;
+      const id = item.getData('m07Id');
+      if (this.m07CollectedIds.has(id)) return;
+      this.m07CollectedIds.add(id);
+      if (item.getData('m07Type') === 'coin') this.m07Coins++;
+      else this.m07Flour++;
+      this.m07Items.remove(item, true, true);
+      this.m07Hud.setText(`コイン ${this.m07Coins}/35   小麦粉 ${this.m07Flour}/5  [M07 TEST]`);
+    });
+    this.m07Hud = this.add.text(24, 165, 'コイン 0/35   小麦粉 0/5  [M07 TEST]', {
+      fontFamily: 'sans-serif', fontSize: '19px', color: '#355b42',
+      backgroundColor: '#fff8e7', padding: { x: 8, y: 4 }
+    }).setScrollFactor(0).setDepth(10);
   }
 
   // M06-5 STEP2: M06-4の採用済み位置関係を一切変えず、見た目だけ追従させる。
